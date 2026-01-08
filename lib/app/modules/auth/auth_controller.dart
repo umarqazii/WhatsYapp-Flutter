@@ -15,21 +15,30 @@ class AuthController extends GetxController {
   Future<void> signInWithGoogle() async {
     try {
       isLoading.value = true;
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
+
+      // 🔥 THIS is the key line
+      await _googleSignIn.signOut();
+      // or await _googleSignIn.disconnect(); (stronger, see below)
+
+      final GoogleSignInAccount? googleUser =
+      await _googleSignIn.signIn();
+
       if (googleUser == null) {
-        isLoading.value = false;
         return;
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
+      final GoogleSignInAuthentication googleAuth =
+      await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
-      final User? user = userCredential.user;
+      final userCredential =
+      await _auth.signInWithCredential(credential);
+
+      final user = userCredential.user;
 
       if (user != null) {
         await _checkAndCreateUser(user);
@@ -41,6 +50,7 @@ class AuthController extends GetxController {
       isLoading.value = false;
     }
   }
+
 
   Future<void> _checkAndCreateUser(User user) async {
     final userDoc = await _db.collection('users').doc(user.email).get();

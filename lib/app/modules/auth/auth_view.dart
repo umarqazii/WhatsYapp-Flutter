@@ -35,17 +35,6 @@ class AuthView extends GetView<AuthController> {
 
                   const SizedBox(height: 24),
 
-                  // const Text(
-                  //   'WhatsYapp',
-                  //   style: TextStyle(
-                  //     fontSize: 28,
-                  //     fontWeight: FontWeight.w700,
-                  //     letterSpacing: 0.5,
-                  //   ),
-                  // ),
-                  //
-                  // const SizedBox(height: 8),
-
                   const Text(
                     'Simple. Private. Fast.',
                     style: TextStyle(
