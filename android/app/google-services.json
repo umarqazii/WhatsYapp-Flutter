@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "44195570148",
+    "project_id": "whatsyapp-9730d",
+    "storage_bucket": "whatsyapp-9730d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:44195570148:android:50e66279cc7897b0fce7f1",
+        "android_client_info": {
+          "package_name": "com.example.whatsyapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "44195570148-frtaqfdc0v633mrfp3q2af9g3a67rqjo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9M8lwCvrTFLFrBiUQypxX9hr46SUEE7A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "44195570148-frtaqfdc0v633mrfp3q2af9g3a67rqjo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
