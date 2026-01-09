@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
+import 'package:permission_handler/permission_handler.dart'; // PERMISSIONS
+import 'package:record/record.dart'; // RECORDER
+import 'package:audioplayers/audioplayers.dart'; // PLAYER
+import 'package:path_provider/path_provider.dart'; // PATHS
 import '../../data/models/message_model.dart';
 
 class ChatController extends GetxController {
@@ -26,11 +29,24 @@ class ChatController extends GetxController {
   RxList<MessageModel> messages = <MessageModel>[].obs;
 
   final ImagePicker _picker = ImagePicker();
+  late AudioRecorder audioRecorder;
+  late AudioPlayer audioPlayer;
   RxBool isUploading = false.obs;
+  RxBool isRecording = false.obs; // UI toggles based on this
+  RxBool isPlaying = false.obs;   // UI toggles Play/Pause icon
+  RxString currentPlayingUrl = ''.obs; // To know WHICH message is playing
 
   @override
   void onInit() {
     super.onInit();
+    audioPlayer = AudioPlayer();
+    audioRecorder = AudioRecorder();
+
+    audioPlayer.onPlayerComplete.listen((event) {
+      isPlaying.value = false;
+      currentPlayingUrl.value = '';
+    });
+
     final args = Get.arguments as Map<String, dynamic>?;
     if (args == null) {
       throw Exception('ChatView opened without arguments');
@@ -116,6 +132,69 @@ class ChatController extends GetxController {
     }
   }
 
+  Future<void> startRecording() async {
+    try {
+      if (await audioRecorder.hasPermission()) {
+        final Directory tempDir = await getTemporaryDirectory();
+        // Create a unique path for the recording
+        final String path = '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+        await audioRecorder.start(const RecordConfig(), path: path);
+        isRecording.value = true;
+      } else {
+        Get.snackbar("Permission Denied", "Microphone permission is required.");
+      }
+    } catch (e) {
+      print("Recording Error: $e");
+    }
+  }
+
+  Future<void> stopRecording() async {
+    try {
+      final String? path = await audioRecorder.stop();
+      isRecording.value = false;
+
+      if (path != null) {
+        isUploading.value = true;
+
+        // Upload to Cloudinary (Use Auto for Audio/Video)
+        CloudinaryResponse response = await cloudinary.uploadFile(
+          CloudinaryFile.fromFile(
+              path,
+              resourceType: CloudinaryResourceType.Auto,
+              folder: "voice_notes" // Optional: organize in folder
+          ),
+        );
+
+        await _sendMessageToDB(
+            content: '🎤 Voice Message',
+            type: MessageType.audio,
+            fileUrl: response.secureUrl
+        );
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Audio upload failed");
+      print(e);
+    } finally {
+      isUploading.value = false;
+    }
+  }
+
+  Future<void> playAudio(String url) async {
+    if (isPlaying.value && currentPlayingUrl.value == url) {
+      // If clicking the same song -> Pause
+      await audioPlayer.pause();
+      isPlaying.value = false;
+    } else {
+      // New song or Resume -> Play
+      await audioPlayer.play(UrlSource(url));
+      isPlaying.value = true;
+      currentPlayingUrl.value = url;
+    }
+  }
+
+
+
   // --- 3. SHARED DB HELPER ---
   // Keeps logic for Text and Image consistent
   Future<void> _sendMessageToDB({
@@ -157,6 +236,8 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     messageInputController.dispose();
+    audioRecorder.dispose();
+    audioPlayer.dispose();
     super.onClose();
   }
 }
