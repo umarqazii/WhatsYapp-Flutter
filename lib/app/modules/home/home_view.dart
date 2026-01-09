@@ -11,15 +11,54 @@ class HomeView extends GetView<HomeController> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
+        key: controller.scaffoldKey,
         backgroundColor: Colors.grey.shade100,
 
+        // --- SIDEBAR (DRAWER) ---
+        drawer: Drawer(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Header with User Info
+              UserAccountsDrawerHeader(
+                  decoration: const BoxDecoration(color: Colors.teal),
+                  accountName: Text(
+                    controller.currentUserName ?? 'User',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  accountEmail: Text(controller.currentUserEmail ?? ''),
+                  currentAccountPicture: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    backgroundImage: (controller.currentUserPhotoUrl != null)
+                        ? NetworkImage(controller.currentUserPhotoUrl)
+                        : null,
+                    child: (controller.currentUserPhotoUrl != null)
+                        ? null
+                        : const Icon(Icons.person, size: 40, color: Colors.teal),
+                  ),
+                ),
+
+
+              // Menu Items
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text('Logout', style: TextStyle(color: Colors.red)),
+                onTap: controller.logout,
+              ),
+            ],
+          ),
+        ),
+
+        // --- APP BAR ---
         appBar: AppBar(
           elevation: 0,
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
+          automaticallyImplyLeading: false, // Hides default hamburger (we make our own)
           titleSpacing: 16,
 
           title: Obx(() {
+            // CASE 1: SEARCHING -> Show Search Field
             if (controller.isSearching.value) {
               return Container(
                 height: 40,
@@ -40,31 +79,46 @@ class HomeView extends GetView<HomeController> {
                 ),
               );
             }
-            return const Text(
-              'Chats',
-              style: TextStyle(fontWeight: FontWeight.w600),
+
+            // CASE 2: NORMAL -> Show Profile Pic + "Chats"
+
+            return Row(
+              children: [
+                // Clickable Profile Picture
+                GestureDetector(
+                  onTap: controller.openDrawer,
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundImage: (controller.currentUserPhotoUrl != null)
+                        ? NetworkImage(controller.currentUserPhotoUrl)
+                        : null,
+                    child: (controller.currentUserPhotoUrl != null)
+                        ? null
+                        : const Icon(Icons.person, size: 20),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Chats',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
             );
           }),
 
           actions: [
             Obx(() {
+              // CASE 1: SEARCHING -> Show Close Button
               if (controller.isSearching.value) {
                 return IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: controller.toggleSearch,
                 );
               }
-              return Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: controller.toggleSearch,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.logout),
-                    onPressed: controller.logout,
-                  ),
-                ],
+              // CASE 2: NORMAL -> Show Search Icon (Logout is now in Drawer)
+              return IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: controller.toggleSearch,
               );
             })
           ],

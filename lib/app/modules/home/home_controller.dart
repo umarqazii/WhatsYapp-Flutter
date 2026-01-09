@@ -10,6 +10,11 @@ import '../../routes/app_pages.dart';
 class HomeController extends GetxController {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final String currentUserEmail = FirebaseAuth.instance.currentUser!.email!;
+  final String currentUserName = FirebaseAuth.instance.currentUser!.displayName!;
+  final String currentUserPhotoUrl = FirebaseAuth.instance.currentUser!.photoURL!;
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  Rxn<UserModel> currentUser = Rxn<UserModel>();
 
   // The list of chats (Observable)
   RxList<ChatModel> chats = <ChatModel>[].obs;
@@ -23,6 +28,10 @@ class HomeController extends GetxController {
     super.onInit();
     // Bind the stream to the reactive list
     chats.bindStream(getChatsStream());
+  }
+
+  void openDrawer() {
+    scaffoldKey.currentState?.openDrawer();
   }
 
   // 1. Listen to all chats where I am a participant
