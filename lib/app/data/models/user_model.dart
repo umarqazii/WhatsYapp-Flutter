@@ -5,12 +5,14 @@ class UserModel {
   String displayName;
   String photoUrl;
   Timestamp? createdAt;
+  String? fcmToken;
 
   UserModel({
     required this.email,
     required this.displayName,
     required this.photoUrl,
     this.createdAt,
+    this.fcmToken,
   });
 
   // Convert to Map for Firestore
@@ -20,6 +22,7 @@ class UserModel {
       'displayName': displayName,
       'photoUrl': photoUrl,
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'fcmToken': fcmToken,
     };
   }
 
@@ -30,8 +33,7 @@ class UserModel {
       displayName: json['displayName'] ?? '',
       photoUrl: json['photoUrl'] ?? '',
       createdAt: json['createdAt'],
+      fcmToken: json['fcmToken'],
     );
   }
-
-
 }

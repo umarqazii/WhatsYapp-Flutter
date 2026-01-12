@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
@@ -9,6 +11,8 @@ import 'package:permission_handler/permission_handler.dart'; // PERMISSIONS
 import 'package:record/record.dart'; // RECORDER
 import 'package:audioplayers/audioplayers.dart'; // PLAYER
 import 'package:path_provider/path_provider.dart'; // PATHS
+import 'package:http/http.dart' as http;
+import 'package:googleapis_auth/auth_io.dart';
 import '../../data/models/message_model.dart';
 
 class ChatController extends GetxController {
@@ -22,6 +26,8 @@ class ChatController extends GetxController {
   late String currentUserEmail;
   late String otherUserName;
   late String otherUserPhotoUrl;
+
+  String currentUserName = '';
 
   final TextEditingController messageInputController = TextEditingController();
 
@@ -235,9 +241,80 @@ class ChatController extends GetxController {
         FieldPath(['unreadCounts', otherUserEmail]): FieldValue.increment(1),
       });
 
+      _sendPushNotification(content);
+
     } catch (e) {
       print("DB Error: $e");
       Get.snackbar("Error", "Failed to save message");
+    }
+  }
+
+  Future<String> _getAccessToken() async {
+    final String response = await rootBundle.loadString('assets/service_account.json');
+    final accountCredentials = ServiceAccountCredentials.fromJson(response);
+
+    final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
+    final client = await clientViaServiceAccount(accountCredentials, scopes);
+
+    return client.credentials.accessToken.data;
+  }
+
+  Future<void> _sendPushNotification(String messageContent) async {
+    try {
+      // 1. Get Other User's FCM Token from Firestore
+      final userDoc = await _db.collection('users').doc(otherUserEmail).get();
+      final String? token = userDoc.data()?['fcmToken'];
+
+      if (token == null) {
+        print("User has no FCM token. Skipping notification.");
+        return;
+      }
+
+      // 2. Get Secure Access Token (V1 API)
+      final currentUser = _auth.currentUser;
+      final String myName = currentUser?.displayName ?? 'Friend';
+      final String myPhoto = currentUser?.photoURL ?? '';
+      final String accessToken = await _getAccessToken();
+
+      // 3. Prepare the V1 Request Body
+      // CHANGE "YOUR_PROJECT_ID" BELOW TO YOUR ACTUAL FIREBASE PROJECT ID
+      final String endpoint = 'https://fcm.googleapis.com/v1/projects/whatsyapp-9730d/messages:send';
+
+      final Map<String, dynamic> body = {
+        'message': {
+          'token': token,
+          'notification': {
+            'title': myName, // Shows who sent it
+            'body': messageContent,
+          },
+          'data': {
+            'type': 'chat',
+            'chatId': chatId,
+            'senderEmail': currentUserEmail,
+            'senderName': myName,
+            'senderPhoto': myPhoto,
+          }
+        }
+      };
+
+      // 4. Send Request
+      final response = await http.post(
+        Uri.parse(endpoint),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        print("Notification Sent Successfully!");
+      } else {
+        print("Notification Failed: ${response.body}");
+      }
+
+    } catch (e) {
+      print("Notification Error: $e");
     }
   }
 
