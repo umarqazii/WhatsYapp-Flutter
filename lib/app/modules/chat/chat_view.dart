@@ -199,27 +199,56 @@ class ChatView extends GetView<ChatController> {
 
       case MessageType.audio:
         return Obx(() {
-          // Check if THIS specific message is playing
-          final isThisPlaying = controller.isPlaying.value && controller.currentPlayingUrl.value == msg.fileUrl;
+          final isThisPlaying =
+              controller.isPlaying.value &&
+                  controller.currentPlayingUrl.value == msg.fileUrl;
 
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: Icon(
-                  isThisPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                  color: isMe ? Colors.white : Colors.teal,
-                  size: 35,
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            constraints: const BoxConstraints(minWidth: 180),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // PLAY / PAUSE
+                GestureDetector(
+                  onTap: () => controller.playAudio(msg.fileUrl),
+                  child: Icon(
+                    isThisPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_fill,
+                    size: 36,
+                    color: isMe ? Colors.white : Colors.teal,
+                  ),
                 ),
-                onPressed: () => controller.playAudio(msg.fileUrl),
-              ),
-              Text(
-                isThisPlaying ? "Playing..." : "Voice Note",
-                style: TextStyle(color: isMe ? Colors.white : Colors.black),
-              ),
-            ],
+
+                const SizedBox(width: 8),
+
+                // WAVEFORM (fake for now, but looks legit)
+                Expanded(
+                  child: Container(
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isMe ? Colors.white54 : Colors.teal.shade200,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // DURATION
+                Text(
+                  msg.formattedDuration,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isMe ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+              ],
+            ),
           );
         });
+
 
       case MessageType.text:
       default:

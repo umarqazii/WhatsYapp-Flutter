@@ -35,6 +35,7 @@ class ChatController extends GetxController {
   RxBool isRecording = false.obs; // UI toggles based on this
   RxBool isPlaying = false.obs;   // UI toggles Play/Pause icon
   RxString currentPlayingUrl = ''.obs; // To know WHICH message is playing
+  DateTime? _recordingStartTime;
 
   @override
   void onInit() {
@@ -138,7 +139,7 @@ class ChatController extends GetxController {
         final Directory tempDir = await getTemporaryDirectory();
         // Create a unique path for the recording
         final String path = '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
-
+        _recordingStartTime = DateTime.now();
         await audioRecorder.start(const RecordConfig(), path: path);
         isRecording.value = true;
       } else {
@@ -154,22 +155,26 @@ class ChatController extends GetxController {
       final String? path = await audioRecorder.stop();
       isRecording.value = false;
 
-      if (path != null) {
+      if (path != null && _recordingStartTime != null) {
+        final int durationSeconds = DateTime.now()
+            .difference(_recordingStartTime!)
+            .inSeconds;
+
         isUploading.value = true;
 
-        // Upload to Cloudinary (Use Auto for Audio/Video)
         CloudinaryResponse response = await cloudinary.uploadFile(
           CloudinaryFile.fromFile(
-              path,
-              resourceType: CloudinaryResourceType.Auto,
-              folder: "voice_notes" // Optional: organize in folder
+            path,
+            resourceType: CloudinaryResourceType.Auto,
+            folder: "voice_notes",
           ),
         );
 
         await _sendMessageToDB(
-            content: '🎤 Voice Message',
-            type: MessageType.audio,
-            fileUrl: response.secureUrl
+          content: '🎤 Voice Message',
+          type: MessageType.audio,
+          fileUrl: response.secureUrl,
+          durationSeconds: durationSeconds, // ✅ PASS IT
         );
       }
     } catch (e) {
@@ -179,6 +184,7 @@ class ChatController extends GetxController {
       isUploading.value = false;
     }
   }
+
 
   Future<void> playAudio(String url) async {
     if (isPlaying.value && currentPlayingUrl.value == url) {
@@ -201,6 +207,7 @@ class ChatController extends GetxController {
     required String content,
     required MessageType type,
     required String fileUrl,
+    int? durationSeconds,
   }) async {
     try {
       final timestamp = Timestamp.now();
@@ -211,6 +218,7 @@ class ChatController extends GetxController {
         timestamp: timestamp,
         type: type,
         fileUrl: fileUrl,
+        durationSeconds: durationSeconds ?? 0,
       );
 
       // 1. Add to Messages Subcollection

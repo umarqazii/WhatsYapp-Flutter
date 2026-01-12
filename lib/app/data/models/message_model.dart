@@ -8,6 +8,7 @@ class MessageModel {
   String fileUrl;
   MessageType type;
   Timestamp timestamp;
+  int? durationSeconds;
 
   MessageModel({
     required this.senderEmail,
@@ -15,6 +16,7 @@ class MessageModel {
     this.fileUrl='',
     this.type = MessageType.text,
     required this.timestamp,
+    this.durationSeconds
   });
 
   factory MessageModel.fromDocument(DocumentSnapshot doc) {
@@ -29,6 +31,7 @@ class MessageModel {
       type: msgType,
       fileUrl: data['fileUrl'] ?? '',
       timestamp: data['timestamp'] ?? Timestamp.now(),
+      durationSeconds: data['durationSeconds']
     );
   }
 
@@ -39,6 +42,15 @@ class MessageModel {
       'fileUrl': fileUrl,
       'type': type.name,
       'timestamp': timestamp,
+      if (durationSeconds != null)
+        'durationSeconds': durationSeconds,
     };
+  }
+
+  String get formattedDuration {
+    if (durationSeconds == null) return "0:00";
+    final minutes = durationSeconds! ~/ 60;
+    final seconds = durationSeconds! % 60;
+    return "$minutes:${seconds.toString().padLeft(2, '0')}";
   }
 }
