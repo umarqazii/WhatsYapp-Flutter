@@ -64,8 +64,8 @@ This project relies on several third-party services. You must configure these ke
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/whatsyapp.git
-cd whatsyapp
+git clone https://github.com/umarqazii/WhatsYapp-Flutter.git
+cd WhatsYapp-Flutter
 
 # Install dependencies
 flutter pub get
