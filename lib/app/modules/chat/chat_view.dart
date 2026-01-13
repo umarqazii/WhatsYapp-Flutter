@@ -109,37 +109,23 @@ class ChatView extends GetView<ChatController> {
                     final msg = controller.messages[index];
                     final isMe = msg.senderEmail == controller.currentUserEmail;
 
-                    return Dismissible(
-                      key: Key(msg.timestamp.toString()), // Use timestamp as unique key for now
-                      direction: DismissDirection.startToEnd,
-                      confirmDismiss: (direction) async {
-                        controller.onSwipeToReply(msg);
-                        return false; // Don't actually dismiss
-                      },
-                      background: Container(
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(left: 20),
-                        // color: Colors.transparent, // Or subtle color
-                        child: const Icon(Icons.reply, color: Colors.teal),
-                      ),
-                      child: Align(
-                        alignment: isMe
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: EdgeInsets.only(
-                            top: 4,
-                            bottom: 4,
-                            right: isMe ? 8 : Get.width * 0.2,
-                            left: isMe ? Get.width * 0.2 : 8,
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: isMe ? Colors.teal : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: _buildMessageContent(msg, isMe),
+                    return Align(
+                      alignment: isMe
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        margin: EdgeInsets.only(
+                          top: 4,
+                          bottom: 4,
+                          right: isMe ? 8 : Get.width * 0.2,
+                          left: isMe ? Get.width * 0.2 : 8,
                         ),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isMe ? Colors.teal : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: _buildMessageContent(msg, isMe),
                       ),
                     );
                   },
@@ -156,44 +142,6 @@ class ChatView extends GetView<ChatController> {
                     )
                   : const SizedBox.shrink(),
             ),
-
-            // --- REPLY PREVIEW ---
-            Obx(() {
-               if (controller.replyToMessage.value == null) return const SizedBox.shrink();
-               
-               final reply = controller.replyToMessage.value!;
-               final isSelf = reply.senderEmail == controller.currentUserEmail;
-               final name = isSelf ? "You" : controller.otherUserName;
-               
-               return Container(
-                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                 color: Colors.grey[200],
-                 child: Row(
-                   children: [
-                     Container(height: 40, width: 4, color: Colors.teal),
-                     const SizedBox(width: 8),
-                     Expanded(
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           Text("Replying to $name", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
-                           Text(
-                             reply.type == MessageType.text ? reply.text : (reply.type == MessageType.image ? "📷 Photo" : "🎤 Voice Message"),
-                             maxLines: 1,
-                             overflow: TextOverflow.ellipsis,
-                             style: const TextStyle(color: Colors.black54),
-                           ),
-                         ],
-                       ),
-                     ),
-                     IconButton(
-                       icon: const Icon(Icons.close, color: Colors.grey),
-                       onPressed: controller.cancelReply,
-                     )
-                   ],
-                 ),
-               );
-            }),
 
             // --- INPUT AREA ---
             Padding(
@@ -235,7 +183,6 @@ class ChatView extends GetView<ChatController> {
                     Expanded(
                       child: TextField(
                         controller: controller.messageInputController,
-                        focusNode: controller.messageFocusNode, // ATTACH FOCUS NODE
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => controller.sendMessage(),
                         decoration: InputDecoration(
@@ -310,43 +257,8 @@ class ChatView extends GetView<ChatController> {
     );
   }
 
+  // --- HELPER: MESSAGE CONTENT ---
   Widget _buildMessageContent(MessageModel msg, bool isMe) {
-    if (msg.replyToSenderName != null) {
-      return Column(
-        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          // QUOTED PART
-          Container(
-            padding: const EdgeInsets.all(8),
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8),
-              border: Border(left: BorderSide(color: isMe ? Colors.teal.shade900 : Colors.teal, width: 4)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                 Text(msg.replyToSenderName ?? '', style: TextStyle(fontWeight: FontWeight.bold, color: isMe ? Colors.white70 : Colors.teal, fontSize: 12)),
-                 Text(
-                   msg.replyToContent ?? '', 
-                   maxLines: 2, 
-                   overflow: TextOverflow.ellipsis, 
-                   style: TextStyle(color: isMe ? Colors.white60 : Colors.black54, fontSize: 12)
-                 ),
-              ],
-            ),
-          ),
-          // ACTUAL MESSAGE
-          _buildCoreContent(msg, isMe),
-        ],
-      );
-    }
-    
-    return _buildCoreContent(msg, isMe);
-  }
-
-  Widget _buildCoreContent(MessageModel msg, bool isMe) {
     switch (msg.type) {
       case MessageType.image:
         return GestureDetector(
