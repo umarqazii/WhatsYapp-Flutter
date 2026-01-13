@@ -41,6 +41,9 @@ class ChatController extends GetxController {
   RxBool isRecording = false.obs; // UI toggles based on this
   RxBool isPlaying = false.obs;   // UI toggles Play/Pause icon
   RxString currentPlayingUrl = ''.obs; // To know WHICH message is playing
+  Rxn<MessageModel> replyToMessage = Rxn<MessageModel>(); // Current REPLY state
+  final FocusNode messageFocusNode = FocusNode(); // Focus control
+
   DateTime? _recordingStartTime;
 
   @override
@@ -66,6 +69,16 @@ class ChatController extends GetxController {
 
     messages.bindStream(getMessagesStream());
     resetUnreadCount();
+  }
+
+  // --- REPLY LOGIC ---
+  void onSwipeToReply(MessageModel msg) {
+    replyToMessage.value = msg;
+    messageFocusNode.requestFocus();
+  }
+
+  void cancelReply() {
+    replyToMessage.value = null;
   }
 
   void resetUnreadCount() {
@@ -99,7 +112,9 @@ class ChatController extends GetxController {
       content: text,
       type: MessageType.text,
       fileUrl: '',
+      replyToMsg: replyToMessage.value, // Pass current reply
     );
+    cancelReply(); // Reset after send
   }
 
   // --- 2. PICK & SEND IMAGE ---
@@ -129,7 +144,9 @@ class ChatController extends GetxController {
         content: '📷 Photo', // This text shows in the Chat List "Last Message"
         type: MessageType.image,
         fileUrl: downloadUrl,
+        replyToMsg: replyToMessage.value, // Pass reply
       );
+      cancelReply(); // Reset
 
     } catch (e) {
       Get.snackbar("Upload Failed", "Check your internet or Cloudinary keys");
@@ -180,8 +197,10 @@ class ChatController extends GetxController {
           content: '🎤 Voice Message',
           type: MessageType.audio,
           fileUrl: response.secureUrl,
-          durationSeconds: durationSeconds, // ✅ PASS IT
+          durationSeconds: durationSeconds,
+          replyToMsg: replyToMessage.value,
         );
+        cancelReply(); // Reset
       }
     } catch (e) {
       Get.snackbar("Error", "Audio upload failed");
@@ -205,15 +224,12 @@ class ChatController extends GetxController {
     }
   }
 
-
-
-  // --- 3. SHARED DB HELPER ---
-  // Keeps logic for Text and Image consistent
   Future<void> _sendMessageToDB({
     required String content,
     required MessageType type,
     required String fileUrl,
     int? durationSeconds,
+    MessageModel? replyToMsg,
   }) async {
     try {
       final timestamp = Timestamp.now();
@@ -225,6 +241,10 @@ class ChatController extends GetxController {
         type: type,
         fileUrl: fileUrl,
         durationSeconds: durationSeconds ?? 0,
+        replyToMessageId: replyToMsg?.timestamp.toString(), 
+        replyToSenderName: replyToMsg?.senderEmail == currentUserEmail ? "You" : (otherUserName), 
+        replyToContent: replyToMsg?.type == MessageType.text ? replyToMsg?.text : (replyToMsg?.type == MessageType.image ? "📷 Photo" : "🎤 Voice Message"),
+        replyToType: replyToMsg?.type,
       );
 
       // 1. Add to Messages Subcollection

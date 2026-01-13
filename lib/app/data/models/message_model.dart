@@ -9,6 +9,12 @@ class MessageModel {
   MessageType type;
   Timestamp timestamp;
   int? durationSeconds;
+  
+  // REPLY FIELDS
+  String? replyToMessageId;
+  String? replyToSenderName;
+  String? replyToContent;
+  MessageType? replyToType;
 
   MessageModel({
     required this.senderEmail,
@@ -16,7 +22,11 @@ class MessageModel {
     this.fileUrl='',
     this.type = MessageType.text,
     required this.timestamp,
-    this.durationSeconds
+    this.durationSeconds,
+    this.replyToMessageId,
+    this.replyToSenderName,
+    this.replyToContent,
+    this.replyToType,
   });
 
   factory MessageModel.fromDocument(DocumentSnapshot doc) {
@@ -31,7 +41,13 @@ class MessageModel {
       type: msgType,
       fileUrl: data['fileUrl'] ?? '',
       timestamp: data['timestamp'] ?? Timestamp.now(),
-      durationSeconds: data['durationSeconds']
+      durationSeconds: data['durationSeconds'],
+      replyToMessageId: data['replyToMessageId'],
+      replyToSenderName: data['replyToSenderName'],
+      replyToContent: data['replyToContent'],
+      replyToType: data['replyToType'] != null 
+          ? MessageType.values.firstWhere((e) => e.name == data['replyToType'], orElse: () => MessageType.text)
+          : null,
     );
   }
 
@@ -44,6 +60,10 @@ class MessageModel {
       'timestamp': timestamp,
       if (durationSeconds != null)
         'durationSeconds': durationSeconds,
+      if (replyToMessageId != null) 'replyToMessageId': replyToMessageId,
+      if (replyToSenderName != null) 'replyToSenderName': replyToSenderName,
+      if (replyToContent != null) 'replyToContent': replyToContent,
+      if (replyToType != null) 'replyToType': replyToType!.name,
     };
   }
 
