@@ -7,6 +7,7 @@ import 'package:whatsyapp/app/data/models/user_model.dart';
 import '../../data/models/chat_model.dart';
 import '../../utils/chat_helpers.dart';
 import '../../routes/app_pages.dart';
+import '../../../main.dart'; // For initZegoService
 
 class HomeController extends GetxController {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -35,6 +36,9 @@ class HomeController extends GetxController {
     _saveDeviceToken();
 
     chats.bindStream(getChatsStream());
+
+    // Initialize Zego Invitation Service
+    initZegoService(currentUserEmail, currentUserName);
   }
 
   // --- NEW: SAVE DEVICE TOKEN ---
